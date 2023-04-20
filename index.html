@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Latent Walk</title>
+    <script src="gradioClient.js"></script>
+  </head>
+  <style>
+    body {
+      font-family: Hershey-Noailles;
+    }
+    @font-face {
+      font-family: Hershey-Noailles;
+      src: url(Hershey-Noailles-Futura-Duplex-Regular.otf);
+    }
+    #lineal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 50px;
+      background-color: #fff;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .interpolation-step {
+      position: absolute;
+      top: calc(100% - 20px);
+      left: 0;
+      height: 20px;
+      width: 100%;
+      margin-left: 5px;
+      margin-right: 5px;
+      background-color: #000;
+      margin: 0 0 10px 5px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .step {
+      height: 10px;
+      width: 20px;
+      margin: 0 0 10px 5px;
+      background-color: #000;
+      color: #fff;
+      font-size: 12px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .input {
+      z-index: 999999999 !important;
+      position: fixed;
+      top: 30px;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .input-container {
+      display: grid;
+      grid-template-columns: 5% auto 5% auto;
+      align-items: center;
+      text-align: center;
+    }
+  </style>
+
+  <body>
+    <div
+      id="message"
+      style="
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 20px;
+        text-align: center;
+        z-index: 999999999 !important;
+      "
+    >
+      AI-powered image generator (beta): create an image by setting the
+      interpolation between your prompts (X axis) and the degree of absurdity (Y
+      axis) by the position of your cursor.
+    </div>
+    <div
+      id="i"
+      style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 20px;
+        z-index: 999999999 !important;
+      "
+    >
+      <i> (i)</i>
+    </div>
+    <div class="input">
+      <div>
+        <b> <i> set your prompts here:</i></b>
+      </div>
+      <div class="input-container">
+        <div><i> 1</i></div>
+        <input
+          type="text"
+          id="input1"
+          value="burned toast with butter on top"
+        />
+        <div><i>2</i></div>
+        <input
+          type="text"
+          id="input2"
+          value="Dolphin wearing diamond earrings"
+        />
+      </div>
+    </div>
+    <div id="lineal">
+      <div class="step">1</div>
+      <div class="step">2</div>
+      <div class="step">3</div>
+      <div class="step">4</div>
+      <div class="step">5</div>
+      <div class="step">6</div>
+      <div class="step">7</div>
+      <div class="step">8</div>
+      <div class="step">9</div>
+      <div class="step">10</div>
+    </div>
+    <div class="interpolation-step">
+      <div class="step">0</div>
+      <div class="step">0.2</div>
+      <div class="step">0.4</div>
+      <div class="step">0.6</div>
+      <div class="step">0.8</div>
+      <div class="step">1</div>
+    </div>
+    <div id="result"></div>
+
+    <script>
+      var message = document.getElementById("message");
+      var i = document.getElementById("i");
+      var displaySeconds = 15;
+
+      function hideMessage() {
+        message.style.display = "none";
+        i.style.display = "block";
+      }
+
+      function showMessage() {
+        i.style.display = "none";
+        message.style.display = "block";
+        setTimeout(hideMessage, displaySeconds * 1000);
+      }
+
+      i.addEventListener("click", showMessage);
+      // change the url here to whatever tool you want to use
+      var client = new gradioClient("t2.nonlinearform.com");
+
+      document.addEventListener("click", function (event) {
+        // calculate the interpolation and steps based on the position of the click
+        var interpolation = Math.max(
+          0,
+          Math.min(1, event.pageX / window.innerWidth)
+        );
+        var steps = Math.max(
+          1,
+          Math.min(10, Math.round((event.pageY / window.innerHeight) * 10))
+        );
+        console.log(interpolation);
+        console.log(steps);
+
+        const input1 = document.querySelector("#input1").value;
+        const input2 = document.querySelector("#input2").value;
+
+        var result = client
+          .predict([
+            input1, //first prompt
+            input2, // second prompt
+            "", // negative promt
+            233, // seed
+            768, // width
+            768, // height
+            steps, // steps
+            7.5, // guidance
+            interpolation, // interpolation
+          ])
+          .then((data) => placeContent(data, event.pageX, event.pageY));
+      });
+
+      // this is the function that places the image on the page
+      function placeContent(image, x, y) {
+        var elem = document.createElement("img");
+        elem.src = image;
+        elem.width = 200;
+        elem.height = 200;
+        elem.style.position = "absolute";
+        elem.style.left = x + "px";
+        elem.style.top = y + "px";
+        document.body.appendChild(elem);
+      }
+    </script>
+  </body>
+</html>
